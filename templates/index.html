@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Strength Checker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #404040 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 50%, rgba(128, 128, 128, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(169, 169, 169, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 80%, rgba(105, 105, 105, 0.06) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .container {
+            background: rgba(26, 26, 26, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7),
+                        0 0 60px rgba(128, 128, 128, 0.1);
+            max-width: 600px;
+            width: 100%;
+            position: relative;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #ffffff;
+            font-size: 2.2em;
+            font-weight: 700;
+            text-shadow: 0 0 20px rgba(169, 169, 169, 0.3);
+            background: linear-gradient(135deg, #d3d3d3, #a9a9a9, #696969);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #c0c0c0;
+            font-weight: 500;
+            font-size: 0.95em;
+        }
+
+        .password-input-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="password"], input[type="text"] {
+            width: 100%;
+            padding: 15px 50px 15px 20px;
+            border: 2px solid rgba(128, 128, 128, 0.3);
+            border-radius: 12px;
+            background: rgba(40, 40, 40, 0.8);
+            color: #ffffff;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        input[type="password"]:focus, input[type="text"]:focus {
+            border-color: #a9a9a9;
+            box-shadow: 0 0 0 3px rgba(169, 169, 169, 0.1),
+                        0 0 20px rgba(169, 169, 169, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #a9a9a9;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-password:hover {
+            color: #d3d3d3;
+            transform: scale(1.1);
+        }
+
+        .strength-meter {
+            margin-top: 15px;
+            padding: 20px;
+            border-radius: 12px;
+            background: rgba(40, 40, 40, 0.6);
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .strength-bar {
+            height: 8px;
+            background: rgba(128, 128, 128, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .strength-fill {
+            height: 100%;
+            transition: all 0.5s ease;
+            border-radius: 4px;
+        }
+
+        .strength-text {
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .criteria-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .criteria-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: rgba(60, 60, 60, 0.5);
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .criteria-item.met {
+            background: rgba(0, 128, 0, 0.2);
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+
+        .criteria-item.not-met {
+            background: rgba(128, 0, 0, 0.2);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+        }
+
+        .criteria-icon {
+            margin-right: 8px;
+            font-size: 1.1em;
+        }
+
+        .feedback {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(60, 60, 60, 0.5);
+            border-left: 4px solid #ffa500;
+        }
+
+        .feedback-title {
+            font-weight: 600;
+            color: #ffa500;
+            margin-bottom: 8px;
+        }
+
+        .feedback-list {
+            list-style: none;
+            color: #c0c0c0;
+        }
+
+        .feedback-list li {
+            margin-bottom: 5px;
+            padding-left: 15px;
+            position: relative;
+        }
+
+        .feedback-list li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: #ffa500;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #4a4a4a, #696969, #808080);
+            color: white;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 20px;
+        }
+
+        .generate-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(128, 128, 128, 0.4);
+        }
+
+        .generate-btn:hover::before {
+            left: 100%;
+        }
+
+        .generate-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .tips {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(40, 40, 40, 0.6);
+            border-radius: 12px;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+        }
+
+        .tips-title {
+            color: #d3d3d3;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .tips-list {
+            color: #a9a9a9;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        .tips-list li {
+            margin-bottom: 5px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: rgba(26, 26, 26, 0.95);
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+            animation: modalFadeIn 0.3s ease-out;
+        }
+
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .close {
+            color: #a9a9a9;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: #d3d3d3;
+        }
+
+        .modal-title {
+            color: #ffffff;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .modal-text {
+            color: #c0c0c0;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid rgba(128, 128, 128, 0.3);
+            border-radius: 8px;
+            background: rgba(40, 40, 40, 0.8);
+            color: #ffffff;
+            font-size: 1em;
+            outline: none;
+        }
+
+        .modal-input:focus {
+            border-color: #a9a9a9;
+            box-shadow: 0 0 10px rgba(169, 169, 169, 0.2);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-primary {
+            background: linear-gradient(135deg, #4a4a4a, #696969);
+            color: white;
+        }
+
+        .modal-btn-secondary {
+            background: linear-gradient(135deg, #8b0000, #a52a2a);
+            color: white;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px;
+                margin: 10px;
+            }
+            
+            .title {
+                font-size: 1.8em;
+            }
+            
+            .criteria-list {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                margin: 20% auto;
+                width: 95%;
+                padding: 20px;
+            }
+
+            .modal-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">🔍 Password Strength Checker</h1>
+        
+        <div class="form-group">
+            <label for="password">Enter Password:</label>
+            <div class="password-input-container">
+                <input type="password" id="password" placeholder="Type your password here..." autocomplete="new-password">
+                <button type="button" class="toggle-password" id="togglePassword">👁️</button>
+            </div>
+        </div>
+
+        <div class="strength-meter" id="strengthMeter" style="display: none;">
+            <div class="strength-bar">
+                <div class="strength-fill" id="strengthFill"></div>
+            </div>
+            <div class="strength-text" id="strengthText">Enter a password to check its strength</div>
+            
+            <div class="criteria-list" id="criteriaList">
+                <div class="criteria-item" id="lengthCriteria">
+                    <span class="criteria-icon">📏</span>
+                    <span>At least 8 characters</span>
+                </div>
+                <div class="criteria-item" id="uppercaseCriteria">
+                    <span class="criteria-icon">🔤</span>
+                    <span>Uppercase letter</span>
+                </div>
+                <div class="criteria-item" id="lowercaseCriteria">
+                    <span class="criteria-icon">🔡</span>
+                    <span>Lowercase letter</span>
+                </div>
+                <div class="criteria-item" id="digitsCriteria">
+                    <span class="criteria-icon">🔢</span>
+                    <span>At least 1 number</span>
+                </div>
+                <div class="criteria-item" id="specialCriteria">
+                    <span class="criteria-icon">🔣</span>
+                    <span>Special character</span>
+                </div>
+            </div>
+
+            <div class="feedback" id="feedback" style="display: none;">
+                <div class="feedback-title">💡 Suggestions to improve:</div>
+                <ul class="feedback-list" id="feedbackList"></ul>
+            </div>
+        </div>
+
+        <button class="generate-btn" id="generateBtn">Generate Strong Password</button>
+
+        <div class="form-group" style="margin-top: 40px;">
+            <h2 class="title" style="font-size: 1.6em; margin-bottom: 20px;">Check for Breached Passwords</h2>
+            <label for="breachPasswordInput">Enter Password to Check:</label>
+            <div class="password-input-container">
+                <input type="password" id="breachPasswordInput" placeholder="Password to check for breaches...">
+                <button type="button" class="toggle-password" id="toggleBreachPassword">👁️</button>
+            </div>
+        </div>
+
+        <button class="generate-btn" id="checkBreachBtn" style="background: linear-gradient(135deg, #8b0000, #a52a2a, #b22222);">
+            Check if Breached
+        </button>
+
+        <div class="strength-meter" id="breachResults" style="display: none; margin-top: 20px; padding: 20px; background: rgba(139, 0, 0, 0.2); border: 1px solid rgba(255, 0, 0, 0.3);">
+            <!-- Results will be displayed here -->
+        </div>
+
+        <div class="tips">
+            <div class="tips-title">💡 Password Security Tips</div>
+            <ul class="tips-list">
+                <li>Use a unique password for each account</li>
+                <li>Avoid personal information like names or birthdays</li>
+                <li>Consider using a password manager</li>
+                <li>Enable two-factor authentication when available</li>
+                <li>Regularly update your passwords</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-title">🔐 API Key Required</div>
+            <div class="modal-text">
+                Do you have a <a href="https://haveibeenpwned.com/API/Key" target="_blank" style="color: #a9a9a9;">Have I Been Pwned API key</a>?
+                <br><br>
+                <strong>With API Key:</strong> Check against the full HIBP database<br>
+                <strong>Without API Key:</strong> Check against local database (common passwords)
+            </div>
+            <input type="password" id="apiKeyInput" class="modal-input" placeholder="Enter your HIBP API key (optional)" style="display: none;">
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-primary" id="useApiKeyBtn">I Have API Key</button>
+                <button class="modal-btn modal-btn-secondary" id="useRockyouBtn">Use local database</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const passwordInput = document.getElementById('password');
+        const togglePassword = document.getElementById('togglePassword');
+        const strengthMeter = document.getElementById('strengthMeter');
+        const strengthFill = document.getElementById('strengthFill');
+        const strengthText = document.getElementById('strengthText');
+        const feedback = document.getElementById('feedback');
+        const feedbackList = document.getElementById('feedbackList');
+        const breachPasswordInput = document.getElementById('breachPasswordInput');
+        const toggleBreachPassword = document.getElementById('toggleBreachPassword');
+        const breachResultsDiv = document.getElementById('breachResults');
+        const checkBreachBtn = document.getElementById('checkBreachBtn');
+        const generateBtn = document.getElementById('generateBtn');
+        
+        // Modal elements
+        const modal = document.getElementById('apiKeyModal');
+        const closeBtn = document.querySelector('.close');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const useApiKeyBtn = document.getElementById('useApiKeyBtn');
+        const useRockyouBtn = document.getElementById('useRockyouBtn');
+
+        // Toggle password visibility
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.textContent = type === 'password' ? '👁️' : '🙈';
+        });
+
+        // Toggle breach password visibility
+        toggleBreachPassword.addEventListener('click', function() {
+            const type = breachPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            breachPasswordInput.setAttribute('type', type);
+            this.textContent = type === 'password' ? '👁️' : '🙈';
+        });
+
+        // Check password strength in real-time
+        passwordInput.addEventListener('input', function() {
+            const password = this.value;
+            
+            if (password.length === 0) {
+                strengthMeter.style.display = 'none';
+                return;
+            }
+
+            strengthMeter.style.display = 'block';
+            checkPasswordStrength(password);
+        });
+
+        // Generate strong password
+        generateBtn.addEventListener('click', function() {
+            const strongPassword = generateStrongPassword();
+            passwordInput.value = strongPassword;
+            passwordInput.type = 'text';
+            togglePassword.textContent = '🙈';
+            checkPasswordStrength(strongPassword);
+        });
+
+        // Check for breaches - show modal
+        checkBreachBtn.addEventListener('click', function() {
+            const password = breachPasswordInput.value;
+            
+            if (!password) {
+                breachResultsDiv.style.display = 'block';
+                breachResultsDiv.innerHTML = '<p style="color: #ffcccb; text-align: center;">Please enter a password to check.</p>';
+                return;
+            }
+            
+            // Show modal
+            modal.style.display = 'block';
+        });
+
+        // Close modal
+        closeBtn.addEventListener('click', function() {
+            modal.style.display = 'none';
+            apiKeyInput.style.display = 'none';
+            apiKeyInput.value = '';
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+                apiKeyInput.style.display = 'none';
+                apiKeyInput.value = '';
+            }
+        });
+
+        // Use API Key button
+        useApiKeyBtn.addEventListener('click', function() {
+            if (apiKeyInput.style.display === 'none') {
+                apiKeyInput.style.display = 'block';
+                apiKeyInput.focus();
+                this.textContent = 'Check with API Key';
+            } else {
+                const apiKey = apiKeyInput.value.trim();
+                if (!apiKey) {
+                    alert('Please enter your API key');
+                    return;
+                }
+                modal.style.display = 'none';
+                checkPasswordWithAPI(breachPasswordInput.value, apiKey);
+                apiKeyInput.style.display = 'none';
+                apiKeyInput.value = '';
+                this.textContent = 'I Have API Key';
+            }
+        });
+
+        // Use rockyou.txt button
+        useRockyouBtn.addEventListener('click', function() {
+            modal.style.display = 'none';
+            checkPasswordInRockyou(breachPasswordInput.value);
+            apiKeyInput.style.display = 'none';
+            apiKeyInput.value = '';
+        });
+
+        // Check password with API
+        async function checkPasswordWithAPI(password, apiKey) {
+            breachResultsDiv.style.display = 'block';
+            breachResultsDiv.innerHTML = '<p style="color: #c0c0c0; text-align: center;">🔍 Checking with Have I Been Pwned API...</p>';
+
+            try {
+                const response = await fetch('/check_breach', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password: password, api_key: apiKey })
+                });
+
+                const result = await response.json();
+                displayBreachResults(result, 'API');
+
+            } catch (error) {
+                breachResultsDiv.innerHTML = '<p style="color: #ffcccb; text-align: center;">❌ An error occurred while checking for breaches.</p>';
+            }
+        }
+
+        // Check password in rockyou.txt
+        async function checkPasswordInRockyou(password) {
+            breachResultsDiv.style.display = 'block';
+            breachResultsDiv.innerHTML = '<p style="color: #c0c0c0; text-align: center;">📖 Checking against local database...</p>';
+
+            try {
+                const response = await fetch('/check_rockyou', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password: password })
+                });
+
+                const result = await response.json();
+                displayBreachResults(result, 'rockyou');
+
+            } catch (error) {
+                breachResultsDiv.innerHTML = '<p style="color: #ffcccb; text-align: center;">❌ An error occurred while checking local database.</p>';
+            }
+        }
+
+        async function checkPasswordStrength(password) {
+            try {
+                const response = await fetch('/check_password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password: password })
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    console.error('Error:', result.error);
+                    return;
+                }
+
+                updateStrengthMeter(result);
+                updateCriteria(result.criteria);
+                updateFeedback(result.feedback);
+
+            } catch (error) {
+                console.error('Error checking password:', error);
+            }
+        }
+
+        function updateStrengthMeter(result) {
+            const percentage = (result.score / result.max_score) * 100;
+            strengthFill.style.width = percentage + '%';
+            strengthFill.style.background = result.strength_color;
+            strengthText.textContent = result.strength_level;
+            strengthText.style.color = result.strength_color;
+        }
+
+        function updateCriteria(criteria) {
+            const criteriaElements = {
+                length: document.getElementById('lengthCriteria'),
+                uppercase: document.getElementById('uppercaseCriteria'),
+                lowercase: document.getElementById('lowercaseCriteria'),
+                digits: document.getElementById('digitsCriteria'),
+                special_character: document.getElementById('specialCriteria')
+            };
+
+            Object.keys(criteria).forEach(key => {
+                const element = criteriaElements[key];
+                if (element) {
+                    if (criteria[key]) {
+                        element.className = 'criteria-item met';
+                        element.querySelector('.criteria-icon').textContent = '✅';
+                    } else {
+                        element.className = 'criteria-item not-met';
+                        element.querySelector('.criteria-icon').textContent = '❌';
+                    }
+                }
+            });
+        }
+
+        function updateFeedback(feedbackItems) {
+            if (feedbackItems.length === 0) {
+                feedback.style.display = 'none';
+                return;
+            }
+
+            feedback.style.display = 'block';
+            feedbackList.innerHTML = '';
+            
+            feedbackItems.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                feedbackList.appendChild(li);
+            });
+        }
+
+        function displayBreachResults(result, source) {
+            breachResultsDiv.innerHTML = ''; // Clear previous results
+            
+            if (source === 'API') {
+                if (result.breached) {
+                    breachResultsDiv.style.backgroundColor = 'rgba(139, 0, 0, 0.2)';
+                    breachResultsDiv.style.border = '1px solid rgba(255, 0, 0, 0.3)';
+                    breachResultsDiv.innerHTML = `
+                        <div style="text-align: center;">
+                            <p style="color: #ffcccb; font-weight: bold; font-size: 1.2em;">🚨 PASSWORD COMPROMISED!</p>
+                            <p style="color: #ffcccb; margin-top: 10px;">This password has been found in <strong>${result.count.toLocaleString()}</strong> data breaches.</p>
+                            <p style="color: #ffa500; margin-top: 10px; font-size: 0.9em;">⚠️ This password should never be used!</p>
+                        </div>
+                    `;
+                } else if (result.error) {
+                    breachResultsDiv.style.backgroundColor = 'rgba(139, 69, 0, 0.2)';
+                    breachResultsDiv.style.border = '1px solid rgba(255, 165, 0, 0.3)';
+                    breachResultsDiv.innerHTML = `<p style="color: #ffcccb; text-align: center;">❌ Error: ${result.error}</p>`;
+                } else {
+                    breachResultsDiv.style.backgroundColor = 'rgba(0, 128, 0, 0.2)';
+                    breachResultsDiv.style.border = '1px solid rgba(0, 255, 0, 0.3)';
+                    breachResultsDiv.innerHTML = `
+                        <div style="text-align: center;">
+                            <p style="color: #ccffcc; font-weight: bold; font-size: 1.2em;">✅ PASSWORD NOT FOUND</p>
+                            <p style="color: #ccffcc; margin-top: 10px;">This password was NOT found in major data breaches.</p>
+                            <p style="color: #90ee90; margin-top: 10px; font-size: 0.9em;">🛡️ This is a good sign, but still ensure it's strong!</p>
+                        </div>
+                    `;
+                }
+            } else if (source === 'rockyou') {
+                if (result.found) {
+                    breachResultsDiv.style.backgroundColor = 'rgba(139, 0, 0, 0.2)';
+                    breachResultsDiv.style.border = '1px solid rgba(255, 0, 0, 0.3)';
+                    breachResultsDiv.innerHTML = `
+                        <div style="text-align: center;">
+                            <p style="color: #ffcccb; font-weight: bold; font-size: 1.2em;">🚨 COMMON PASSWORD DETECTED!</p>
+                            <p style="color: #ffcccb; margin-top: 10px;">This password was found in the local database.</p>
+                            <p style="color: #ffa500; margin-top: 10px; font-size: 0.9em;">⚠️ This password is commonly used and easily crackable!</p>
+                        </div>
+                    `;
+                } else if (result.error) {
+                    breachResultsDiv.style.backgroundColor = 'rgba(139, 69, 0, 0.2)';
+                    breachResultsDiv.style.border = '1px solid rgba(255, 165, 0, 0.3)';
+                    breachResultsDiv.innerHTML = `<p style="color: #ffcccb; text-align: center;">❌ Error: ${result.error}</p>`;
+                } else {
+                    breachResultsDiv.style.backgroundColor = 'rgba(0, 128, 0, 0.2)';
+                    breachResultsDiv.style.border = '1px solid rgba(0, 255, 0, 0.3)';
+                    breachResultsDiv.innerHTML = `
+                        <div style="text-align: center;">
+                            <p style="color: #ccffcc; font-weight: bold; font-size: 1.2em;">✅ NOT IN COMMON PASSWORDS</p>
+                            <p style="color: #ccffcc; margin-top: 10px;">This password was NOT found in local database.</p>
+                            <p style="color: #90ee90; margin-top: 10px; font-size: 0.9em;">🛡️ Good! But consider checking against the full HIBP database with an API key.</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function generateStrongPassword() {
+            const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+            const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const digits = '0123456789';
+            const special = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+            
+            let password = '';
+            
+            // Ensure at least one character from each category
+            password += lowercase[Math.floor(Math.random() * lowercase.length)];
+            password += uppercase[Math.floor(Math.random() * uppercase.length)];
+            password += digits[Math.floor(Math.random() * digits.length)];
+            password += special[Math.floor(Math.random() * special.length)];
+            
+            // Fill the rest randomly
+            const allChars = lowercase + uppercase + digits + special;
+            for (let i = 4; i < 12; i++) {
+                password += allChars[Math.floor(Math.random() * allChars.length)];
+            }
+            
+            // Shuffle the password
+            return password.split('').sort(() => Math.random() - 0.5).join('');
+        }
+
+        // Add some interactive effects
+        document.querySelectorAll('input, button').forEach(element => {
+            element.addEventListener('mouseenter', function() {
+                if (!this.matches(':disabled')) {
+                    this.style.transform = 'translateY(-1px)';
+                }
+            });
+            
+            element.addEventListener('mouseleave', function() {
+                if (!this.matches(':focus')) {
+                    this.style.transform = 'translateY(0)';
+                }
+            });
+        });
+
+        // Handle Enter key in API key input
+        apiKeyInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                useApiKeyBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>
