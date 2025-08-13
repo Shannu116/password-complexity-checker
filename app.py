@@ -164,15 +164,40 @@ def check_rockyou():
         return jsonify({'error': 'Password not provided.'}), 400
 
     try:
-        with open('rockyou.txt', 'r', encoding='utf-8', errors='ignore') as f:
+        # Check if rockyou.txt exists
+        rockyou_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'rockyou.txt')
+        
+        if not os.path.exists(rockyou_path):
+            return jsonify({
+                'error': 'Local password database not available. Please use the HIBP API option for breach checking.',
+                'suggestion': 'Get a free API key from Have I Been Pwned to check against their comprehensive database.'
+            }), 404
+        
+        with open(rockyou_path, 'r', encoding='utf-8', errors='ignore') as f:
             for line_num, line in enumerate(f, 1):
                 if line.strip() == password:
                     return jsonify({'found': True, 'line_number': line_num})
         return jsonify({'found': False})
-    except FileNotFoundError:
-        return jsonify({'error': 'local database not found. Please ensure the file exists in the same directory as the application.'}), 500
+        
     except Exception as e:
         return jsonify({'error': f'Error reading local database: {str(e)}'}), 500
 
+@app.route('/health')
+def health_check():
+    """Health check endpoint for deployment platforms"""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'Password Complexity Checker',
+        'version': '2.0'
+    }), 200
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Railway deployment configuration
+    port = int(os.environ.get('PORT', 5000))
+    debug_mode = os.environ.get('FLASK_ENV', 'production') != 'production'
+    
+    app.run(
+        host='0.0.0.0',
+        port=port,
+        debug=debug_mode
+    )
